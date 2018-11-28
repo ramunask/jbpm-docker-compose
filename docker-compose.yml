@@ -1,0 +1,59 @@
+version: '3'
+services:
+  db:
+    image: postgres:9.6
+    ports:
+      - 5432
+    restart: always
+    environment:
+      # use default credentials
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - jbpm
+  jbpm:
+    build:
+      context: ./jbpm
+    environment:
+      # use custom password for accessing kieserver (user should be created in kie-server machine)
+      KIE_SERVER_PWD: kieserver1!
+      # use custom password for controller user (user is being created in this machine)
+      KIE_SERVER_CONTROLLER_USER: admin
+      KIE_SERVER_CONTROLLER_PWD: admin
+    ports:
+      # http port is for accesing designer http://localhost:8080/jbpm-console/
+      - 8080:8080
+      # http port is for accesing management http://localhost:9990/console/
+      - 9990:9990
+      # expose GIT port ssh://wbadmin@localhost:8001/MySpace/evaluation
+      - 8001:8001
+    networks:
+      - jbpm
+  kie-server:
+    build:
+      context: ./kie-server
+    environment: 
+      # join all kie-servers to the same group
+      KIE_SERVER_ID: kie-server-cluster
+      # start_kie-server.sh detects and automatically calculates KIE_SERVER_LOCATION, KIE_SERVER_CONTROLLER and KIE_MAVEN_REPO values
+      KIE_WB_HOSTNAME: jbpm
+      # use custom password for kieserver user
+      KIE_SERVER_PWD: kieserver1!
+      # use custom password for controller user (user should be created in jbpm machine)
+      KIE_SERVER_CONTROLLER_USER: admin
+      KIE_SERVER_CONTROLLER_PWD: admin
+      KIE_MAVEN_REPO_USER: admin
+      KIE_MAVEN_REPO_PASSWORD: admin
+      # custom postgres DB
+      DB_HOST: db
+      DB_PASSWORD: postgres
+    #ports:
+    #  # expose only if scaling is not used (running only one instance)!
+    #  - 8081:8080
+    depends_on:
+      - db
+      - jbpm
+    networks:
+      - jbpm
+networks:
+  jbpm:

@@ -1,0 +1,15 @@
+embed-server --server-config=standalone.xml
+
+# remove h2 database
+#/subsystem=datasources/jdbc-driver=h2:remove
+#/subsystem=datasources/data-source=ExampleDS:remove
+
+# add postgres database
+module add --name=org.postgres --resources=drivers/postgresql.jar --dependencies=javax.api,javax.transaction.api
+/subsystem=datasources/jdbc-driver=postgres:add(driver-name=postgres,driver-module-name=org.postgres,driver-xa-datasource-class-name=org.postgresql.xa.PGXADataSource)
+xa-data-source add --name=jBPMXADS --jndi-name="java:jboss/datasources/jBPMDS" --driver-name=postgres --user-name=jbpm --password=jbpm --xa-datasource-class=org.postgresql.xa.PGXADataSource --xa-datasource-properties=[ServerName=localhost, PortNumber=5432, DatabaseName=jbpm] --background-validation=true --background-validation-millis=120000 --exception-sorter-class-name=org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter --valid-connection-checker-class-name=org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker --validate-on-match=true
+
+/system-property=org.kie.server.persistence.ds:add(value="java:jboss/datasources/jBPMDS")
+/system-property=org.kie.server.persistence.dialect:add(value="org.hibernate.dialect.PostgreSQLDialect")
+
+stop-embedded-server
